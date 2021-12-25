@@ -129,17 +129,16 @@ func (r *router) find(parent *tree, part string) *tree {
 // Break reqPath into slashes and words. Traverse router tree following
 // reqPath. Return the longest matched path end node.
 func (r *router) Match(reqPath string, method string) *tree {
+
 	node := r.selectTree(method)
 	prev := 0
 	word := ""
 
 	for i := 0; i < len(reqPath); i++ {
 		if reqPath[i] == '/' {
-
 			if prev != i {
+				// word
 				word = reqPath[prev+1 : i]
-
-				// check word match in tree
 				matched := matchPart(node, word)
 				if matched == nil {
 					// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
@@ -147,22 +146,19 @@ func (r *router) Match(reqPath string, method string) *tree {
 				}
 				node = matched
 			}
-
-			// check slash match in tree
+			// slash
 			matched := matchPart(node, "/")
 			if matched == nil {
-				// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, "/", reqPath, method)
+				// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
 				return node
 			}
 			node = matched
-
 			prev = i
 		}
 	}
-	// get last word
+	// last word
 	if prev+1 < len(reqPath) {
 		word := reqPath[prev+1:]
-		// check last word match in tree
 		matched := matchPart(node, word)
 		if matched == nil {
 			// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
