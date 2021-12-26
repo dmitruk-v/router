@@ -3,12 +3,12 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
 type tree struct {
 	part     string
-	method   string
 	handler  http.Handler
 	children []*tree
 }
@@ -18,10 +18,7 @@ func (t *tree) Equals(t2 *tree) bool {
 	if t.part != t2.part {
 		return false
 	}
-	if t.method != t2.method {
-		return false
-	}
-	if t.handler != t2.handler {
+	if reflect.ValueOf(t.handler) != reflect.ValueOf(t2.handler) {
 		return false
 	}
 	if len(t.children) != len(t2.children) {
@@ -36,7 +33,7 @@ func (t *tree) Equals(t2 *tree) bool {
 	return true
 }
 
-// Pretty print a tree
+// Pretty print the tree
 func (t *tree) Print() {
 	var sb = strings.Builder{}
 
@@ -61,8 +58,4 @@ func (t *tree) Print() {
 	}
 	fn(t, 0)
 	fmt.Print(sb.String())
-}
-
-func (t *tree) GetHandler() http.Handler {
-	return t.handler
 }

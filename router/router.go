@@ -1,17 +1,25 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 )
 
+type routeKey int
+
+const RouteParamsKey routeKey = 1
+
 type router struct {
-	get    *tree
-	post   *tree
-	put    *tree
-	patch  *tree
-	delete *tree
+	get     *tree
+	post    *tree
+	put     *tree
+	patch   *tree
+	delete  *tree
+	connect *tree
+	head    *tree
+	options *tree
 }
 
 func NewRouter() *router {
@@ -36,35 +44,69 @@ func NewRouter() *router {
 			part:     "DELETE",
 			children: []*tree{},
 		},
+		connect: &tree{
+			part:     "CONNECT",
+			children: []*tree{},
+		},
+		head: &tree{
+			part:     "HEAD",
+			children: []*tree{},
+		},
+		options: &tree{
+			part:     "OPTIONS",
+			children: []*tree{},
+		},
 	}
+}
+
+// Add http.Handler for the given pattern and method
+func (ro *router) Handle(pattern string, method string, handler http.Handler) {
+	ro.parse(pattern, method, handler)
+}
+
+// Add http.HandlerFunc for the given pattern and method
+func (ro *router) HandleFunc(pattern string, method string, handler http.HandlerFunc) {
+	ro.parse(pattern, method, handler)
+}
+
+// Get url params from context
+func (ro *router) Params(r *http.Request) map[string]string {
+	m, ok := r.Context().Value(RouteParamsKey).(map[string]string)
+	if !ok {
+		panic("router params map not found in context")
+	}
+	return m
 }
 
 // Select router tree based on http method
-func (r *router) selectTree(method string) *tree {
+func (ro *router) selectTree(method string) *tree {
 	switch method {
 	case http.MethodGet:
-		return r.get
+		return ro.get
 	case http.MethodPost:
-		return r.post
+		return ro.post
 	case http.MethodPut:
-		return r.put
+		return ro.put
 	case http.MethodPatch:
-		return r.patch
+		return ro.patch
 	case http.MethodDelete:
-		return r.delete
+		return ro.delete
+	case http.MethodConnect:
+		return ro.connect
+	case http.MethodHead:
+		return ro.head
+	case http.MethodOptions:
+		return ro.options
 	default:
-		log.Fatal("Unsupported http method:", method)
-		return nil
+		panic(fmt.Sprintf("Unsupported http method: %s", method))
 	}
 }
 
-// 1. Select router tree based on http method.
-// 2. Iterate through pattern. Breaks pattern string to slashes and words.
-// 3. Build new branch in the tree, based on parts extracted from pattern.
-// 4. Attach a http handler function to last founded node.
-func (r *router) Parse(pattern string, method string, handler http.Handler) *tree {
+// Build new branch in the tree, based on parts extracted from pattern.
+// Attach a http handler function to last founded node.
+func (ro *router) parse(pattern string, method string, handler http.Handler) *tree {
 
-	child := r.selectTree(method)
+	child := ro.selectTree(method)
 	prev := 0
 	word := ""
 
@@ -74,10 +116,10 @@ func (r *router) Parse(pattern string, method string, handler http.Handler) *tre
 			if prev != i {
 				word = pattern[prev+1 : i]
 				// create word tree node
-				child = r.addChild(child, word)
+				child = addChild(child, word)
 			}
 			// create slash tree node
-			child = r.addChild(child, "/")
+			child = addChild(child, "/")
 			prev = i
 		}
 	}
@@ -85,24 +127,25 @@ func (r *router) Parse(pattern string, method string, handler http.Handler) *tre
 	if prev+1 < len(pattern) {
 		word := pattern[prev+1:]
 		//create word tree node
-		child = r.addChild(child, word)
+		child = addChild(child, word)
 	}
 
+	// attach handler to the last created child node
 	child.handler = handler
 	return child
 }
 
 // If parent already contains child with this part, return this existing child.
 // Otherwise create a new child node and add it to the parent children list.
-func (r *router) addChild(parent *tree, part string) *tree {
-	// check parent.children nodes for node with part = word
-	child := r.find(parent, part)
-	// if founded, return this node
-	if child != nil {
-		return child
+func addChild(parent *tree, part string) *tree {
+	// check parent.children nodes for node with equal part and return it
+	for _, child := range parent.children {
+		if child.part == part {
+			return child
+		}
 	}
 	// otherwise, create new child node
-	child = &tree{
+	child := &tree{
 		part:     part,
 		children: []*tree{},
 	}
@@ -110,58 +153,44 @@ func (r *router) addChild(parent *tree, part string) *tree {
 	return child
 }
 
-// Find child node in parent.children list with provided part.
-func (r *router) find(parent *tree, part string) *tree {
-	// it is very unlikely, that parent can be nil,
-	// but in this case return nil
-	if parent == nil {
-		return parent
-	}
-	// If child with equal part already exists, return it.
-	for _, chd := range parent.children {
-		if chd.part == part {
-			return chd
-		}
-	}
-	return nil
-}
-
 // Break reqPath into slashes and words. Traverse router tree following
-// reqPath. Return the longest matched path end node.
-func (r *router) Match(reqPath string, method string) *tree {
+// reqPath. Return the farest matched node.
+func (ro *router) match(ctx context.Context, reqPath string, method string) *tree {
 
-	node := r.selectTree(method)
+	node := ro.selectTree(method)
 	prev := 0
 	word := ""
+
+	// let's say, that max number of url parts would be 32
+	parts := [32]string{}
+	partIndex := 0
 
 	for i := 0; i < len(reqPath); i++ {
 		if reqPath[i] == '/' {
 			if prev != i {
 				// word
 				word = reqPath[prev+1 : i]
-				matched := matchPart(node, word)
-				if matched == nil {
-					// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
-					return node
-				}
-				node = matched
+				parts[partIndex] = word
+				partIndex++
 			}
 			// slash
-			matched := matchPart(node, "/")
-			if matched == nil {
-				// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
-				return node
-			}
-			node = matched
+			parts[partIndex] = "/"
+			partIndex++
 			prev = i
 		}
 	}
 	// last word
 	if prev+1 < len(reqPath) {
 		word := reqPath[prev+1:]
-		matched := matchPart(node, word)
+		parts[partIndex] = word
+		partIndex++
+	}
+
+	// sequentially match collected part to node of the tree,
+	// and going deep through the tree
+	for _, part := range parts {
+		matched := matchPart(ctx, node, part)
 		if matched == nil {
-			// fmt.Printf("MATCH NOT FOUND %v, %v, %v, %v\n", node, word, reqPath, method)
 			return node
 		}
 		node = matched
@@ -170,29 +199,55 @@ func (r *router) Match(reqPath string, method string) *tree {
 	return node
 }
 
-func matchPart(parent *tree, part string) *tree {
-	for _, ch := range parent.children {
+// Match parent children nodes, and find a child that match a part.
+// If nothing found, return nil.
+func matchPart(ctx context.Context, parent *tree, part string) *tree {
+	// it is very unlikely, that parent can be nil,
+	// but in this case return nil
+	if parent == nil {
+		return parent
+	}
+	for _, child := range parent.children {
 		// if parts have exact match
-		if ch.part == part {
-			return ch
+		if child.part == part {
+			return child
 		}
 		// if regex found, and it matches part
-		if len(ch.part) > 2 && ch.part[0] == '{' && ch.part[len(ch.part)-1] == '}' {
-			return ch
+		if len(child.part) > 2 && child.part[0] == '{' && child.part[len(child.part)-1] == '}' {
+			key := child.part[1 : len(child.part)-1]
+			m, ok := ctx.Value(RouteParamsKey).(map[string]string)
+			if !ok {
+				log.Fatal("router params map not found in context")
+			}
+			m[key] = part
+			return child
 		}
 	}
 	return nil
 }
 
-func (r *router) PrintTree() {
-	r.get.Print()
-	r.post.Print()
-	r.put.Print()
-	r.patch.Print()
-	r.delete.Print()
+// http.Handler implementation
+func (ro *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	ctx := context.WithValue(req.Context(), RouteParamsKey, make(map[string]string))
+	node := ro.match(ctx, req.URL.Path, req.Method)
+
+	// we do not have handler for this route
+	if node.handler == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	node.handler.ServeHTTP(w, req.WithContext(ctx))
 }
 
-func (r *router) Add(pattern string, method string, handler http.Handler) {
-	node := r.Parse(pattern, method, handler)
-	fmt.Println(node)
+// Print whole router tree
+func (ro *router) PrintTree() {
+	ro.get.Print()
+	ro.post.Print()
+	ro.put.Print()
+	ro.patch.Print()
+	ro.delete.Print()
+	ro.connect.Print()
+	ro.head.Print()
+	ro.options.Print()
 }

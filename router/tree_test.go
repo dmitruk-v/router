@@ -2,61 +2,60 @@ package router
 
 import (
 	"fmt"
-	"net/http"
 	"testing"
 )
 
 func TestEquals(t *testing.T) {
 	t1 := &tree{
-		part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-			{part: "users", method: http.MethodGet, handler: nil, children: []*tree{
-				{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-					{part: "{user_id}", method: http.MethodGet, handler: nil, children: []*tree{
-						{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-							{part: "games", method: http.MethodGet, handler: nil, children: []*tree{
-								{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-									{part: "{game_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+		part: "/", handler: nil, children: []*tree{
+			{part: "users", handler: nil, children: []*tree{
+				{part: "/", handler: nil, children: []*tree{
+					{part: "{user_id}", handler: nil, children: []*tree{
+						{part: "/", handler: nil, children: []*tree{
+							{part: "games", handler: nil, children: []*tree{
+								{part: "/", handler: nil, children: []*tree{
+									{part: "{game_id}", handler: nil, children: []*tree{}},
 								}},
 							}},
-							{part: "toys", method: http.MethodGet, handler: nil, children: []*tree{
-								{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-									{part: "{toy_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+							{part: "toys", handler: nil, children: []*tree{
+								{part: "/", handler: nil, children: []*tree{
+									{part: "{toy_id}", handler: nil, children: []*tree{}},
 								}},
 							}},
 						}},
 					}},
 				}},
 			}},
-			{part: "products", method: http.MethodGet, handler: nil, children: []*tree{
-				{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-					{part: "{product_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+			{part: "products", handler: nil, children: []*tree{
+				{part: "/", handler: nil, children: []*tree{
+					{part: "{product_id}", handler: nil, children: []*tree{}},
 				}},
 			}},
 		}}
 
 	t2 := &tree{
-		part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-			{part: "users", method: http.MethodGet, handler: nil, children: []*tree{
-				{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-					{part: "{user_id}", method: http.MethodGet, handler: nil, children: []*tree{
-						{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-							{part: "games", method: http.MethodGet, handler: nil, children: []*tree{
-								{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-									{part: "{game_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+		part: "/", handler: nil, children: []*tree{
+			{part: "users", handler: nil, children: []*tree{
+				{part: "/", handler: nil, children: []*tree{
+					{part: "{user_id}", handler: nil, children: []*tree{
+						{part: "/", handler: nil, children: []*tree{
+							{part: "games", handler: nil, children: []*tree{
+								{part: "/", handler: nil, children: []*tree{
+									{part: "{game_id}", handler: nil, children: []*tree{}},
 								}},
 							}},
-							{part: "toys", method: http.MethodGet, handler: nil, children: []*tree{
-								{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-									{part: "{toy_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+							{part: "toys", handler: nil, children: []*tree{
+								{part: "/", handler: nil, children: []*tree{
+									{part: "{toy_id}", handler: nil, children: []*tree{}},
 								}},
 							}},
 						}},
 					}},
 				}},
 			}},
-			{part: "products", method: http.MethodGet, handler: nil, children: []*tree{
-				{part: "/", method: http.MethodGet, handler: nil, children: []*tree{
-					{part: "{product_id}", method: http.MethodGet, handler: nil, children: []*tree{}},
+			{part: "products", handler: nil, children: []*tree{
+				{part: "/", handler: nil, children: []*tree{
+					{part: "{product_id}", handler: nil, children: []*tree{}},
 				}},
 			}},
 		}}
