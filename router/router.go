@@ -115,10 +115,10 @@ func (ro *router) parse(pattern string, method string, handler http.Handler) *tr
 			// extract word between slashes
 			if prev != i {
 				word = pattern[prev+1 : i]
-				// create word tree node
+				// create word tree node, or select existing
 				child = addChild(child, word)
 			}
-			// create slash tree node
+			// create slash tree node, or select existing
 			child = addChild(child, "/")
 			prev = i
 		}
@@ -126,7 +126,7 @@ func (ro *router) parse(pattern string, method string, handler http.Handler) *tr
 	// last part
 	if prev+1 < len(pattern) {
 		word := pattern[prev+1:]
-		//create word tree node
+		//create word tree node, or select existing
 		child = addChild(child, word)
 	}
 
