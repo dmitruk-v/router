@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dmitruk-v/router/router"
+	router "github.com/dmitruk-v/router/v1"
 )
 
 func main() {
@@ -13,11 +13,6 @@ func main() {
 
 	ro.HandleFunc("/", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "Hello world")
-	})
-
-	ro.HandleFunc("/users/{user_id}", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {
-		vals := ro.Params(r)
-		fmt.Fprintln(w, vals)
 	})
 
 	ro.HandleFunc("/users/{user_id}/games/{game_id}", http.MethodGet, func(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-package router
+package v1
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 type routeKey int
 
-const RouteParamsKey routeKey = 1
+const routeParamsKey routeKey = 1
 
 type router struct {
 	get     *tree
@@ -71,7 +71,7 @@ func (ro *router) HandleFunc(pattern string, method string, handler http.Handler
 
 // Get url params from context
 func (ro *router) Params(r *http.Request) map[string]string {
-	m, ok := r.Context().Value(RouteParamsKey).(map[string]string)
+	m, ok := r.Context().Value(routeParamsKey).(map[string]string)
 	if !ok {
 		panic("router params map not found in context")
 	}
@@ -215,7 +215,7 @@ func matchPart(ctx context.Context, parent *tree, part string) *tree {
 		// if regex found, and it matches part
 		if len(child.part) > 2 && child.part[0] == '{' && child.part[len(child.part)-1] == '}' {
 			key := child.part[1 : len(child.part)-1]
-			m, ok := ctx.Value(RouteParamsKey).(map[string]string)
+			m, ok := ctx.Value(routeParamsKey).(map[string]string)
 			if !ok {
 				log.Fatal("router params map not found in context")
 			}
@@ -228,7 +228,7 @@ func matchPart(ctx context.Context, parent *tree, part string) *tree {
 
 // http.Handler implementation
 func (ro *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := context.WithValue(req.Context(), RouteParamsKey, make(map[string]string))
+	ctx := context.WithValue(req.Context(), routeParamsKey, make(map[string]string))
 	node := ro.match(ctx, req.URL.Path, req.Method)
 
 	// we do not have handler for this route

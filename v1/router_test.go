@@ -1,4 +1,4 @@
-package router
+package v1
 
 import (
 	"context"
@@ -141,7 +141,7 @@ func BenchmarkMatch(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		ctx := context.WithValue(context.Background(), RouteParamsKey, make(map[string]string))
+		ctx := context.WithValue(context.Background(), routeParamsKey, make(map[string]string))
 		node := r.match(ctx, "/users/123/games/456/bla", http.MethodGet)
 		_ = node
 	}
