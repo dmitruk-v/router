@@ -1,2 +1,2 @@
 @echo off
-go test -v -bench . -benchmem -run=^Benchmark github.com/dmitruk-v/router/router
+go test -v -bench . -benchmem -run=^Benchmark github.com/dmitruk-v/router/v1
