@@ -27,5 +27,3 @@ func main() {
 	}
 }
 ```
-
-Some other changes
