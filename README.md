@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	router "github.com/dmitruk-v/router/v1"
+	"github.com/dmitruk-v/router"
 )
 
 func main() {
